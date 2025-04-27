@@ -3,7 +3,7 @@ name: Run Notion Automation Script Daily
 on:
   schedule:
     # This cron job runs every day at 8 AM UTC. Adjust the time as needed.
-    - cron: '0 8 * * *'
+    - cron: '0 20 * * *'
 
 jobs:
   run_script:
