@@ -82,7 +82,7 @@ def get_current_day_page_id(date_str, current_month_page_id):
         print("No current month page found.")
         return None
     
-     # Query the blocks inside the current month's page (not a database)
+    # Query the blocks inside the current month's page (not a database)
     query_url = f"https://api.notion.com/v1/blocks/{current_month_page_id}/children"
 
     response = requests.get(query_url, headers=headers)
@@ -198,5 +198,4 @@ def run_daily_task():
         create_daily_page(date_str, current_month_page_id, template_id, unfinished_tasks)
     else:
         print(f"No template found for {day_of_week}")
-# Run the script (this would be scheduled to run once per day)
-run_daily_task()
+
