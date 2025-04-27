@@ -191,7 +191,7 @@ def run_daily_task():
             # Get unfinished tasks from yesterday's page
             unfinished_tasks = get_unfinished_tasks(yesterday_page_id)
         else:
-            print(f"Error: Could not find {yesterday.strftime("%A, %d.%m")} page.")
+            print(f"Error: Could not find {yesterday.strftime('%A, %d.%m')} page.")
             unfinished_tasks = []
 
         # Create the page for today, whether it existed or not, and add unfinished tasks
