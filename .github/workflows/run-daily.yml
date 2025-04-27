@@ -22,8 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt  # If you have any dependencies listed
-
+    
     - name: Run the Notion automation script
       run: |
         python notion_script.py  # Run your script
