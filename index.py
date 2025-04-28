@@ -163,10 +163,11 @@ def create_daily_page(date_str, parent_page_id, template_page_id, unfinished_tas
 def run_daily_task():
     # Get today's date and format it as "Wednesday, 25.04"
     today = datetime.date.today()
-    date_str = today.strftime("%A, %d.%m")
+    tomorrow = today + datetime.timedelta(days=1)
+    date_str = tomorrow.strftime("%A, %d.%m")
     
     # Get the correct template based on the day of the week
-    day_of_week = today.strftime("%A")
+    day_of_week = tomorrow.strftime("%A")
     template_id = TEMPLATES.get(day_of_week)  # Get the template ID for that day
 
     if template_id:
@@ -184,17 +185,18 @@ def run_daily_task():
             print(f"No page found for {date_str}. Creating a new page...")
 
         # Get yesterday's page ID, regardless of whether today's page exists or not
-        yesterday = today - datetime.timedelta(days=1)
-        yesterday_page_id = get_current_day_page_id(yesterday.strftime("%A, %d.%m"), current_month_page_id)
-        
-        if yesterday_page_id:
+        #yesterday = today - datetime.timedelta(days=1)
+        #yesterday_page_id = get_current_day_page_id(yesterday.strftime("%A, %d.%m"), current_month_page_id)
+        today_page_id = get_current_day_page_id(today.strftime("%A, %d.%m"), current_month_page_id)
+
+        if today_page_id:
             # Get unfinished tasks from yesterday's page
-            unfinished_tasks = get_unfinished_tasks(yesterday_page_id)
+            unfinished_tasks = get_unfinished_tasks(today_page_id)
         else:
-            print(f"Error: Could not find {yesterday.strftime('%A, %d.%m')} page.")
+            print(f"Error: Could not find {today.strftime('%A, %d.%m')} page.")
             unfinished_tasks = []
 
-        # Create the page for today, whether it existed or not, and add unfinished tasks
+        # Create the page for tomorrow, whether it existed or not, and add unfinished tasks
         create_daily_page(date_str, current_month_page_id, template_id, unfinished_tasks)
     else:
         print(f"No template found for {day_of_week}")
