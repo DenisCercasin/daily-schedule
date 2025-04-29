@@ -40,26 +40,29 @@ def create_month_page(month_str):
             ]
         }
     }
-    print(data)
     
     response = requests.post(create_url, headers=headers, json=data)
     if response.status_code == 200:
-        print(f"Created page for {month_str}")
         return response.json()["id"]  # Return the ID of the newly created page
     else:
         print(f"Error creating page for {month_str}: {response.text}")
         return None
 
-# Get the current month’s page ID (if it exists)
-def get_current_month_page_id():
-    current_month = datetime.datetime.now().strftime("%B")
+# Get the next month's page ID (if it exists)
+def get_next_month_page_id():
+    # Get the current date and increment the month to get next month's name
+    today = datetime.date.today()
+    next_month = today.replace(month=(today.month % 12) + 1)
+    next_month_name = next_month.strftime("%B")
+
+    # Query the database to find if the page for next month exists
     query_url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
     
     query_data = {
         "filter": {
             "property": "title",
             "text": {
-                "contains": current_month
+                "contains": next_month_name
             }
         }
     }
@@ -70,42 +73,13 @@ def get_current_month_page_id():
         if result["results"]:
             return result["results"][0]["id"]  # Return the existing month's page ID
         else:
-            print(f"No page found for {current_month}. Creating a new page...")
-            return create_month_page(current_month)
+            print(f"No page found for {next_month_name}. Creating a new page...")
+            return create_month_page(next_month_name)
     else:
-        print(f"Error fetching current month page: {response.text}")
+        print(f"Error fetching next month's page: {response.text}")
         return None
 
-# Get the current day's page ID (if it exists)
-def get_current_day_page_id(date_str, current_month_page_id):
-    if not current_month_page_id:
-        print("No current month page found.")
-        return None
-    
-    # Query the blocks inside the current month's page (not a database)
-    query_url = f"https://api.notion.com/v1/blocks/{current_month_page_id}/children"
-
-    response = requests.get(query_url, headers=headers)
-    
-    if response.status_code == 200:
-        result = response.json()
-        print(result)
-        # Check for a block (sub-page) with the title that matches the date
-        for block in result.get("results", []):
-            # Check if the block is a sub-page and its title matches the date
-            if block.get("type") == "child_page":
-                title = block["child_page"]["title"]
-                if date_str in title:  # Check if today's date is in the title
-                    return block["id"]  # Return the ID of the sub-page with today's date
-
-        # If no match found
-        print(f"No page found for {date_str} inside the current month's page.")
-        return None
-    else:
-        print(f"Error fetching blocks inside the current month page: {response.text}")
-        return None
-
-# This function retrieves the blocks from a template page (if you have a template page set up).
+# Get the template blocks for the specified day
 def get_template_blocks(template_page_id):
     url = f"https://api.notion.com/v1/blocks/{template_page_id}/children"
     response = requests.get(url, headers=headers)
@@ -116,30 +90,14 @@ def get_template_blocks(template_page_id):
         print(f"Error fetching template blocks: {response.text}")
         return []
 
-# Get unfinished tasks from yesterday's page (if any)
-def get_unfinished_tasks(previous_day_page_id):
-    url = f"https://api.notion.com/v1/blocks/{previous_day_page_id}/children"
-    response = requests.get(url, headers=headers)
-    
-    unfinished_tasks = []
-    if response.status_code == 200:
-        blocks = response.json()["results"]
-        # Loop through the blocks to find the tasks (assuming they are checkboxes)
-        for block in blocks:
-            if block["type"] == "to_do" and block["to_do"]["checked"] is False:
-                unfinished_tasks.append(block)  # Add unfinished tasks to the list
-    else:
-        print(f"Error fetching unfinished tasks: {response.text}")
-    return unfinished_tasks
-
-# Create a new page for today (with unfinished tasks from yesterday)
-def create_daily_page(date_str, parent_page_id, template_page_id, unfinished_tasks):
+# Create a new page for a specific date
+def create_daily_page(date_str, parent_page_id, template_page_id):
     create_url = "https://api.notion.com/v1/pages"
     
-    # Step 1: Get blocks from the template page
+    # Get blocks from the template page
     template_blocks = get_template_blocks(template_page_id)
     
-    # Step 2: Create a new page with the specified date
+    # Create a new page with the specified date
     data = {
         "parent": {"page_id": parent_page_id},
         "properties": {
@@ -150,7 +108,7 @@ def create_daily_page(date_str, parent_page_id, template_page_id, unfinished_tas
                 }
             ]
         },
-        "children": template_blocks + unfinished_tasks  # Step 3: Add the blocks from the template to the new page
+        "children": template_blocks  # Add the blocks from the template to the new page
     }
 
     response = requests.post(create_url, headers=headers, json=data)
@@ -159,45 +117,41 @@ def create_daily_page(date_str, parent_page_id, template_page_id, unfinished_tas
     else:
         print(f"Error creating page for {date_str}: {response.text}")
 
-# Main function to run daily
-def run_daily_task():
-    # Get today's date and format it as "Wednesday, 25.04"
+# Main function to create pages for the entire next month on the 28th of each month
+def create_month_pages():
     today = datetime.date.today()
-    tomorrow = today + datetime.timedelta(days=1)
-    date_str = tomorrow.strftime("%A, %d.%m")
     
-    # Get the correct template based on the day of the week
-    day_of_week = tomorrow.strftime("%A")
-    template_id = TEMPLATES.get(day_of_week)  # Get the template ID for that day
-
-    if template_id:
-        # Check if today's page exists
-        current_month_page_id = get_current_month_page_id()
-        if not current_month_page_id:
-            print("Failed to create or find the current month page.")
+    # Check if today is the 28th
+    if today.day == 28:
+        print("Today is the 28th, creating pages for the next month...")
+        
+        # Get the next month's page ID
+        next_month_page_id = get_next_month_page_id()
+        if not next_month_page_id:
+            print("Failed to create or find the next month page.")
             return
 
-        current_day_page_id = get_current_day_page_id(date_str, current_month_page_id)
-        
-        if current_day_page_id:
-            print(f"Page for {date_str} already exists. Adding unfinished tasks from previous day...")
-        else:
-            print(f"No page found for {date_str}. Creating a new page...")
+        # Get the correct template based on the day of the week
+        for day in range(1, 32):  # Loop through days of the next month
+            try:
+                date = datetime.date(today.year, today.month + 1, day)
+                date_str = date.strftime("%A, %d.%m")
+                
+                # Get the correct template based on the day of the week
+                day_of_week = date.strftime("%A")  # Get the name of the day (e.g., "Monday")
+                template_id = TEMPLATES.get(day_of_week)  # Get the template ID for that day
+                
+                if template_id:
+                    create_daily_page(date_str, next_month_page_id, template_id)
+                else:
+                    print(f"No template found for {day_of_week}")
+                
+            except ValueError:
+                # Skip invalid dates (e.g., 30th in a month with only 29 days)
+                continue
 
-        # Get yesterday's page ID, regardless of whether today's page exists or not
-        #yesterday = today - datetime.timedelta(days=1)
-        #yesterday_page_id = get_current_day_page_id(yesterday.strftime("%A, %d.%m"), current_month_page_id)
-        today_page_id = get_current_day_page_id(today.strftime("%A, %d.%m"), current_month_page_id)
-
-        if today_page_id:
-            # Get unfinished tasks from yesterday's page
-            unfinished_tasks = get_unfinished_tasks(today_page_id)
-        else:
-            print(f"Error: Could not find {today.strftime('%A, %d.%m')} page.")
-            unfinished_tasks = []
-
-        # Create the page for tomorrow, whether it existed or not, and add unfinished tasks
-        create_daily_page(date_str, current_month_page_id, template_id, unfinished_tasks)
     else:
-        print(f"No template found for {day_of_week}")
+        print("Today is not the 28th, skipping the creation of pages for the next month.")
 
+# Run the task to create pages for the next month on the 28th of the current month
+create_month_pages()
