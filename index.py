@@ -121,8 +121,6 @@ def create_daily_page(date_str, parent_page_id, template_page_id):
 def create_month_pages():
     today = datetime.date.today()
     
-    
-        
      # Get the next month's page ID
     next_month_page_id = get_next_month_page_id()
     if not next_month_page_id:
