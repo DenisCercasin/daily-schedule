@@ -121,19 +121,17 @@ def create_daily_page(date_str, parent_page_id, template_page_id):
 def create_month_pages():
     today = datetime.date.today()
     
-    # Check if today is the 28th
-    if today.day == 28:
-        print("Today is the 28th, creating pages for the next month...")
+    
         
-        # Get the next month's page ID
-        next_month_page_id = get_next_month_page_id()
-        if not next_month_page_id:
-            print("Failed to create or find the next month page.")
-            return
+     # Get the next month's page ID
+    next_month_page_id = get_next_month_page_id()
+    if not next_month_page_id:
+        print("Failed to create or find the next month page.")
+        return
 
-        # Get the correct template based on the day of the week
-        for day in range(1, 32):  # Loop through days of the next month
-            try:
+    # Get the correct template based on the day of the week
+    for day in range(1, 32):  # Loop through days of the next month
+        try:
                 date = datetime.date(today.year, today.month + 1, day)
                 date_str = date.strftime("%A, %d.%m")
                 
@@ -146,9 +144,9 @@ def create_month_pages():
                 else:
                     print(f"No template found for {day_of_week}")
                 
-            except ValueError:
+        except ValueError:
                 # Skip invalid dates (e.g., 30th in a month with only 29 days)
-                continue
+            continue
 
     else:
         print("Today is not the 28th, skipping the creation of pages for the next month.")
